@@ -16,6 +16,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/gogo/protobuf/jsonpb"
 
@@ -24,6 +25,8 @@ import (
 	"github.com/pkg/errors"
 
 	// This Service
+	"github.com/go-kit/kit/circuitbreaker"
+	"github.com/sony/gobreaker"
 	pb "github.com/vpiyush/go-kit-truss"
 	"github.com/vpiyush/go-kit-truss/watermark-service/svc"
 )
@@ -51,6 +54,11 @@ func New(instance string, options ...httptransport.ClientOption) (pb.WatermarkSe
 	}
 	_ = u
 
+	cbreaker := circuitbreaker.Gobreaker(gobreaker.NewCircuitBreaker(
+		gobreaker.Settings{
+			Name:    "GetDocument",
+			Timeout: 30 * time.Second,
+		}))
 	var GetDocumentZeroEndpoint endpoint.Endpoint
 	{
 		GetDocumentZeroEndpoint = httptransport.NewClient(
@@ -60,6 +68,13 @@ func New(instance string, options ...httptransport.ClientOption) (pb.WatermarkSe
 			DecodeHTTPGetDocumentResponse,
 			options...,
 		).Endpoint()
+		// circuitbreaker end poin
+		GetDocumentZeroEndpoint = circuitbreaker.Gobreaker(gobreaker.NewCircuitBreaker(
+			gobreaker.Settings{
+				Name:    "GetDocument",
+				Timeout: 30 * time.Second,
+			},
+		))(GetDocumentZeroEndpoint)
 	}
 	var AddDocumentZeroEndpoint endpoint.Endpoint
 	{
@@ -70,6 +85,7 @@ func New(instance string, options ...httptransport.ClientOption) (pb.WatermarkSe
 			DecodeHTTPAddDocumentResponse,
 			options...,
 		).Endpoint()
+		AddDocumentZeroEndpoint = cbreaker(AddDocumentZeroEndpoint)
 	}
 	var WatermarkZeroEndpoint endpoint.Endpoint
 	{
@@ -80,6 +96,7 @@ func New(instance string, options ...httptransport.ClientOption) (pb.WatermarkSe
 			DecodeHTTPWatermarkResponse,
 			options...,
 		).Endpoint()
+		WatermarkZeroEndpoint = cbreaker(WatermarkZeroEndpoint)
 	}
 
 	return svc.Endpoints{
