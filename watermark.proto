@@ -1,0 +1,80 @@
+
+
+syntax = "proto3";
+
+package watermark;
+
+import "github.com/metaverse/truss/deftree/googlethirdparty/annotations.proto";
+
+
+service Watermark{
+    rpc GetDocument (GetDocumentRequest) returns (GetDocumentResponse) {
+        option(google.api.http) = {
+            get: "/document"
+            additional_bindings {
+                get: "/document/"
+            }
+        };
+    }
+
+    rpc AddDocument (AddDocumentRequest) returns (AddDocumentResponse) {
+        option(google.api.http) = {
+            custom {
+                kind: "HEAD"
+                path: "/document"
+            }
+            additional_bindings {
+                post: "/document/"
+                body: "*"
+            }
+        };
+    }
+
+    rpc Watermark (WatermarkRequest) returns (WatermarkResponse) {
+        option(google.api.http) = {
+        post: "/watermark"
+          additional_bindings {
+            post: "/watermark/"
+            body: "*"
+          }
+        };
+    }
+}
+
+message GetDocumentRequest {
+	string Key = 1;
+	string Value = 2;
+}
+
+message GetDocumentResponse {
+	string Content = 1;
+	string Title = 2;
+	string Author = 3;
+	string Topic = 4;
+	string Watermark = 5;
+	string    Err = 6;
+}
+
+message WatermarkRequest {
+	string 	TicketID = 1;
+	string 	Mark = 2;
+}
+
+message WatermarkResponse {
+	int32 Code  =1;
+	string 	Err = 2;
+}
+
+message AddDocumentRequest {
+	string Content = 1;
+	string Title = 2;
+	string Author = 3;
+	string Topic = 4;
+	string Watermark = 5;
+}
+
+message AddDocumentResponse {
+	string TicketID = 1;
+	string 	Err = 2;
+}
+
